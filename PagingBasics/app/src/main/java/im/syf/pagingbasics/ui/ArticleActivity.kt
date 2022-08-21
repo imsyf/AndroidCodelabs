@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.recyclerview.widget.DividerItemDecoration
 import im.syf.pagingbasics.PagingBasicsApp
 import im.syf.pagingbasics.databinding.ActivityArticleBinding
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class ArticleActivity : AppCompatActivity() {
@@ -44,8 +45,8 @@ class ArticleActivity : AppCompatActivity() {
              * but still visible on the screen, for example in a multi window app
              */
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.items.collect {
-                    articleAdapter.submitList(it)
+                viewModel.items.collectLatest {
+                    articleAdapter.submitData(it)
                 }
             }
         }

@@ -2,7 +2,7 @@ package im.syf.pagingbasics.ui
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.recyclerview.widget.ListAdapter
+import androidx.paging.PagingDataAdapter
 import im.syf.pagingbasics.data.Article
 import im.syf.pagingbasics.databinding.ViewArticleBinding
 import im.syf.pagingbasics.ext.provideItemCallback
@@ -10,7 +10,7 @@ import im.syf.pagingbasics.ext.provideItemCallback
 /**
  * Adapter for an [Article] [List].
  */
-class ArticleAdapter : ListAdapter<Article, ArticleViewHolder>(DIFFER) {
+class ArticleAdapter : PagingDataAdapter<Article, ArticleViewHolder>(DIFFER) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ArticleViewHolder {
         val inflater = LayoutInflater.from(parent.context)
@@ -19,7 +19,10 @@ class ArticleAdapter : ListAdapter<Article, ArticleViewHolder>(DIFFER) {
     }
 
     override fun onBindViewHolder(holder: ArticleViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        val item = getItem(position)
+        if (item != null) {
+            holder.bind(item)
+        }
     }
 
     companion object {
