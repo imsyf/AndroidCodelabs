@@ -5,7 +5,8 @@ Load and display data into a list incrementally with pagination.
 ## Topics covered in this module
 
 - Kotlin
-    - Coroutines: Flow, StateFlow
+    - Coroutines: suspend functions, Flow, StateFlow
 - Consume stream of data safely in the UI layer
+- Paging 3
 
 ## Result
