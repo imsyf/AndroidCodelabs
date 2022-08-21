@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="12dp"
+    android:paddingTop="12dp">
+
+    <TextView
+        android:id="@+id/repo_name"
+        style="@style/TextAppearance.MaterialComponents.Headline6"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textColor="?attr/colorPrimary"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="android-architecture" />
+
+    <TextView
+        android:id="@+id/repo_description"
+        style="@style/TextAppearance.MaterialComponents.Body1"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:maxLines="10"
+        android:paddingVertical="12dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/repo_name"
+        tools:text="A collection of samples to discuss and showcase different architectural tools and patterns for Android apps." />
+
+    <TextView
+        android:id="@+id/repo_language"
+        style="@style/TextAppearance.MaterialComponents.Body2"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="0dp"
+        android:paddingVertical="12dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/repo_description"
+        tools:text="Language: Kotlin" />
+
+    <ImageView
+        android:id="@+id/star"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginVertical="12dp"
+        android:contentDescription="@null"
+        android:paddingStart="8dp"
+        android:paddingEnd="4dp"
+        android:src="@drawable/ic_star"
+        app:layout_constraintBottom_toBottomOf="@+id/repo_stars"
+        app:layout_constraintEnd_toStartOf="@+id/repo_stars"
+        app:layout_constraintTop_toTopOf="@+id/repo_stars" />
+
+    <TextView
+        android:id="@+id/repo_stars"
+        style="@style/TextAppearance.MaterialComponents.Body2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBaseline_toBaselineOf="@+id/repo_language"
+        app:layout_constraintEnd_toStartOf="@id/forks"
+        tools:text="30" />
+
+    <ImageView
+        android:id="@+id/forks"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginVertical="12dp"
+        android:contentDescription="@null"
+        android:paddingStart="8dp"
+        android:paddingEnd="4dp"
+        android:src="@drawable/ic_git_branch"
+        app:layout_constraintBottom_toBottomOf="@+id/repo_forks"
+        app:layout_constraintEnd_toStartOf="@+id/repo_forks"
+        app:layout_constraintTop_toTopOf="@+id/repo_forks" />
+
+    <TextView
+        android:id="@+id/repo_forks"
+        style="@style/TextAppearance.MaterialComponents.Body2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBaseline_toBaselineOf="@id/repo_language"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/repo_description"
+        tools:text="30" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
