@@ -1,18 +1,25 @@
 package im.syf.pagingadvanced.ui
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.asLiveData
-import androidx.lifecycle.distinctUntilChanged
-import androidx.lifecycle.liveData
-import androidx.lifecycle.switchMap
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import im.syf.pagingadvanced.data.GithubRepository
-import im.syf.pagingadvanced.data.RepoSearchResult
-import kotlinx.coroutines.Dispatchers
+import im.syf.pagingadvanced.repo.Repo
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SearchRepoViewModel(
@@ -23,7 +30,9 @@ class SearchRepoViewModel(
     /**
      * Stream of immutable states representative of the UI.
      */
-    val state: LiveData<UiState>
+    val state: StateFlow<UiState>
+
+    val pagingDataFlow: Flow<PagingData<Repo>>
 
     /**
      * Processor of side effects from the UI which in turn feedback into [UiState]
@@ -31,59 +40,78 @@ class SearchRepoViewModel(
     val accept: (UiAction) -> Unit
 
     init {
-        val queryLiveData = MutableLiveData(savedStateHandle[LAST_SEARCH_QUERY] ?: DEFAULT_QUERY)
+        val initialQuery: String = savedStateHandle[LAST_SEARCH_QUERY] ?: DEFAULT_QUERY
+        val lastQueryScrolled: String = savedStateHandle[LAST_QUERY_SCROLLED] ?: DEFAULT_QUERY
 
-        state = queryLiveData
+        val actionStateFlow = MutableSharedFlow<UiAction>()
+
+        val searches = actionStateFlow
+            .filterIsInstance<UiAction.Search>()
             .distinctUntilChanged()
-            .switchMap { q ->
-                liveData {
-                    val uiState: LiveData<UiState> = repository.getSearchResultStream(q)
-                        .map { UiState(q, it) }
-                        .asLiveData(Dispatchers.Main)
-                    emitSource(uiState)
-                }
-            }
+            .onStart { emit(UiAction.Search(initialQuery)) }
+
+        val queriesScrolled = actionStateFlow
+            .filterIsInstance<UiAction.Scroll>()
+            .distinctUntilChanged()
+            // This is shared to keep the flow "hot" while caching the last query scrolled,
+            // otherwise each flatMapLatest invocation would lose the last query scrolled,
+            .shareIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5000),
+                replay = 1,
+            )
+            .onStart { emit(UiAction.Scroll(lastQueryScrolled)) }
+
+        @OptIn(ExperimentalCoroutinesApi::class)
+        pagingDataFlow = searches
+            .flatMapLatest { searchRepo(it.query) }
+            .cachedIn(viewModelScope)
+
+        state = combine(
+            searches,
+            queriesScrolled,
+            ::Pair
+        ).map { (search, scroll) ->
+            UiState(
+                query = search.query,
+                lastQueryScrolled = scroll.currentQuery,
+                // If the search query matches the scroll query, the user has scrolled
+                hasNotScrolledForCurrentSearch = search.query != scroll.currentQuery,
+            )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5000),
+            initialValue = UiState(),
+        )
 
         accept = { action ->
-            when (action) {
-                is UiAction.Scroll -> if (action.shouldFetchMore) {
-                    val immutableQuery = queryLiveData.value
-                    if (immutableQuery != null) {
-                        viewModelScope.launch {
-                            repository.requestMore(immutableQuery)
-                        }
-                    }
-                }
-                is UiAction.Search -> queryLiveData.postValue(action.query)
-            }
+            viewModelScope.launch { actionStateFlow.emit(action) }
         }
     }
 
+    private fun searchRepo(query: String): Flow<PagingData<Repo>> =
+        repository.getSearchResultStream(query)
+
     override fun onCleared() {
-        savedStateHandle[LAST_SEARCH_QUERY] = state.value?.query
+        savedStateHandle[LAST_SEARCH_QUERY] = state.value.query
+        savedStateHandle[LAST_QUERY_SCROLLED] = state.value.lastQueryScrolled
         super.onCleared()
     }
 
     sealed class UiAction {
         data class Search(val query: String) : UiAction()
-        data class Scroll(
-            val visibleItemCount: Int,
-            val lastVisibleItemPosition: Int,
-            val totalItemCount: Int,
-        ) : UiAction() {
-            val shouldFetchMore =
-                visibleItemCount + lastVisibleItemPosition + VISIBLE_THRESHOLD >= totalItemCount
-        }
+        data class Scroll(val currentQuery: String) : UiAction()
     }
 
     data class UiState(
-        val query: String,
-        val searchResult: RepoSearchResult,
+        val query: String = DEFAULT_QUERY,
+        val lastQueryScrolled: String = DEFAULT_QUERY,
+        val hasNotScrolledForCurrentSearch: Boolean = false
     )
 
     companion object {
-        private const val VISIBLE_THRESHOLD = 5
         private const val LAST_SEARCH_QUERY = "last_search_query"
+        private const val LAST_QUERY_SCROLLED = "last_query_scrolled"
         private const val DEFAULT_QUERY = "Android"
     }
 }
