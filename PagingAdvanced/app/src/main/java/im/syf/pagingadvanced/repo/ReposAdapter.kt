@@ -1,10 +1,10 @@
 package im.syf.pagingadvanced.repo
 
 import android.view.ViewGroup
-import androidx.recyclerview.widget.ListAdapter
+import androidx.paging.PagingDataAdapter
 import im.syf.pagingadvanced.ext.provideItemCallback
 
-class ReposAdapter : ListAdapter<Repo, RepoViewHolder>(DIFFER) {
+class ReposAdapter : PagingDataAdapter<Repo, RepoViewHolder>(DIFFER) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RepoViewHolder {
         return RepoViewHolder.create(parent)
