@@ -19,6 +19,7 @@ import im.syf.pagingadvanced.SearchRepoApp
 import im.syf.pagingadvanced.databinding.ActivitySearchRepoBinding
 import im.syf.pagingadvanced.repo.Repo
 import im.syf.pagingadvanced.repo.ReposAdapter
+import im.syf.pagingadvanced.repo.ReposLoadStateAdapter
 import im.syf.pagingadvanced.ui.SearchRepoViewModel.UiAction
 import im.syf.pagingadvanced.ui.SearchRepoViewModel.UiState
 import kotlinx.coroutines.flow.Flow
@@ -69,7 +70,10 @@ class SearchRepoActivity : AppCompatActivity() {
         uiActions: (UiAction) -> Unit,
     ) {
         val reposAdapter = ReposAdapter()
-        list.adapter = reposAdapter
+        list.adapter = reposAdapter.withLoadStateHeaderAndFooter(
+            header = ReposLoadStateAdapter { reposAdapter.retry() },
+            footer = ReposLoadStateAdapter { reposAdapter.retry() }
+        )
 
         bindSearch(
             uiState = uiState,
