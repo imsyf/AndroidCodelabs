@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import androidx.paging.insertSeparators
+import androidx.paging.map
 import im.syf.pagingadvanced.data.GithubRepository
 import im.syf.pagingadvanced.repo.Repo
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -32,7 +34,7 @@ class SearchRepoViewModel(
      */
     val state: StateFlow<UiState>
 
-    val pagingDataFlow: Flow<PagingData<Repo>>
+    val pagingDataFlow: Flow<PagingData<UiModel>>
 
     /**
      * Processor of side effects from the UI which in turn feedback into [UiState]
@@ -89,13 +91,49 @@ class SearchRepoViewModel(
         }
     }
 
-    private fun searchRepo(query: String): Flow<PagingData<Repo>> =
+    private fun searchRepo(query: String): Flow<PagingData<UiModel>> =
         repository.getSearchResultStream(query)
+            .map { pagingData -> pagingData.map { UiModel.RepoItem(it) } }
+            .map {
+                it.insertSeparators { before, after ->
+                    if (after == null) {
+                        // we're at the end of the list
+                        return@insertSeparators null
+                    }
+
+                    if (before == null) {
+                        // we're at the beginning of the list
+                        return@insertSeparators UiModel.SeparatorItem(
+                            "${after.roundedStarCount}0.000+ stars"
+                        )
+                    }
+
+                    // check between 2 items
+                    if (before.roundedStarCount > after.roundedStarCount) {
+                        if (after.roundedStarCount >= 1) {
+                            UiModel.SeparatorItem("${after.roundedStarCount}0.000+ stars")
+                        } else {
+                            UiModel.SeparatorItem("< 10.000+ stars")
+                        }
+                    } else {
+                        // no separator
+                        null
+                    }
+                }
+            }
 
     override fun onCleared() {
         savedStateHandle[LAST_SEARCH_QUERY] = state.value.query
         savedStateHandle[LAST_QUERY_SCROLLED] = state.value.lastQueryScrolled
         super.onCleared()
+    }
+
+    sealed class UiModel {
+        data class RepoItem(val repo: Repo) : UiModel() {
+            val roundedStarCount: Int = repo.stars / 10_000
+        }
+
+        data class SeparatorItem(val description: String) : UiModel()
     }
 
     sealed class UiAction {

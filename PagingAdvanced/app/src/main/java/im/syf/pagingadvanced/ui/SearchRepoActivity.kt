@@ -19,10 +19,10 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.RecyclerView
 import im.syf.pagingadvanced.SearchRepoApp
 import im.syf.pagingadvanced.databinding.ActivitySearchRepoBinding
-import im.syf.pagingadvanced.repo.Repo
 import im.syf.pagingadvanced.repo.ReposAdapter
 import im.syf.pagingadvanced.repo.ReposLoadStateAdapter
 import im.syf.pagingadvanced.ui.SearchRepoViewModel.UiAction
+import im.syf.pagingadvanced.ui.SearchRepoViewModel.UiModel
 import im.syf.pagingadvanced.ui.SearchRepoViewModel.UiState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -68,7 +68,7 @@ class SearchRepoActivity : AppCompatActivity() {
      */
     private fun ActivitySearchRepoBinding.bindState(
         uiState: StateFlow<UiState>,
-        pagingData: Flow<PagingData<Repo>>,
+        pagingData: Flow<PagingData<UiModel>>,
         uiActions: (UiAction) -> Unit,
     ) {
         val reposAdapter = ReposAdapter()
@@ -134,7 +134,7 @@ class SearchRepoActivity : AppCompatActivity() {
     private fun ActivitySearchRepoBinding.bindList(
         adapter: ReposAdapter,
         uiState: StateFlow<UiState>,
-        pagingData: Flow<PagingData<Repo>>,
+        pagingData: Flow<PagingData<UiModel>>,
         onScrollChanged: (UiAction.Scroll) -> Unit,
     ) {
         retryButton.setOnClickListener { adapter.retry() }
@@ -198,7 +198,6 @@ class SearchRepoActivity : AppCompatActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 }
-
             }
         }
     }
