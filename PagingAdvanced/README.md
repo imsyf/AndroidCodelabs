@@ -14,3 +14,5 @@ Load and display data from network and database into a list, incrementally, with
 - Room for offline support
 
 ## Result
+
+[PagingAdvanced.webm](https://user-images.githubusercontent.com/29587914/187068666-aed3ccde-c5d7-4cf2-967e-569926539903.mp4)

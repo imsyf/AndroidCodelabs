@@ -13,6 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.paging.CombinedLoadStates
 import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -29,8 +30,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.launch
 
 class SearchRepoActivity : AppCompatActivity() {
@@ -72,8 +73,9 @@ class SearchRepoActivity : AppCompatActivity() {
         uiActions: (UiAction) -> Unit,
     ) {
         val reposAdapter = ReposAdapter()
+        val header = ReposLoadStateAdapter { reposAdapter.retry() }
         list.adapter = reposAdapter.withLoadStateHeaderAndFooter(
-            header = ReposLoadStateAdapter { reposAdapter.retry() },
+            header,
             footer = ReposLoadStateAdapter { reposAdapter.retry() }
         )
 
@@ -83,6 +85,7 @@ class SearchRepoActivity : AppCompatActivity() {
         )
 
         bindList(
+            header = header,
             adapter = reposAdapter,
             uiState = uiState,
             pagingData = pagingData,
@@ -132,6 +135,7 @@ class SearchRepoActivity : AppCompatActivity() {
     }
 
     private fun ActivitySearchRepoBinding.bindList(
+        header: ReposLoadStateAdapter,
         adapter: ReposAdapter,
         uiState: StateFlow<UiState>,
         pagingData: Flow<PagingData<UiModel>>,
@@ -146,10 +150,9 @@ class SearchRepoActivity : AppCompatActivity() {
         })
 
         val notLoading = adapter.loadStateFlow
-            // Only emit when REFRESH LoadState for the paging source changes.
-            .distinctUntilChangedBy { it.source.refresh }
-            // Only react to cases where REFRESH completes i.e., NotLoading.
-            .map { it.source.refresh is LoadState.NotLoading }
+            .asRemotePresentation()
+            // Only react to cases where REFRESH completes
+            .map { it == RemotePresentationState.PRESENTED }
 
         val hasNotScrolledForCurrentSearch = uiState
             .map { it.hasNotScrolledForCurrentSearch }
@@ -178,19 +181,28 @@ class SearchRepoActivity : AppCompatActivity() {
                 val isListEmpty =
                     loadState.refresh is LoadState.NotLoading && adapter.itemCount == 0
 
+                header.loadState = loadState.mediator
+                    ?.refresh
+                    ?.takeIf { it is LoadState.Error && adapter.itemCount > 0 }
+                    ?: loadState.prepend
+
                 empty.isVisible = isListEmpty
-                list.isVisible = !isListEmpty
+                // Only show the list if refresh succeeds, either from the the local db or the remote.
+                list.isVisible = loadState.source.refresh is LoadState.NotLoading ||
+                    loadState.mediator?.refresh is LoadState.NotLoading
 
                 // Show loading spinner during initial load or refresh.
-                progressBar.isVisible = loadState.source.refresh is LoadState.Loading
+                progressBar.isVisible = loadState.mediator?.refresh is LoadState.Loading
                 // Show the retry state if initial load or refresh fails.
-                retryButton.isVisible = loadState.source.refresh is LoadState.Error
+                retryButton.isVisible = loadState.mediator?.refresh is LoadState.Error &&
+                    adapter.itemCount == 0
 
                 // Toast on any error, regardless of whether it came from RemoteMediator or PagingSource
                 val errorState = loadState.source.append as? LoadState.Error
                     ?: loadState.source.prepend as? LoadState.Error
                     ?: loadState.append as? LoadState.Error
                     ?: loadState.prepend as? LoadState.Error
+
                 errorState?.let {
                     Toast.makeText(
                         this@SearchRepoActivity,
@@ -201,4 +213,27 @@ class SearchRepoActivity : AppCompatActivity() {
             }
         }
     }
+
+    private fun Flow<CombinedLoadStates>.asRemotePresentation(): Flow<RemotePresentationState> =
+        scan(RemotePresentationState.INITIAL) { state, loadState ->
+            when (state) {
+                RemotePresentationState.INITIAL -> when (loadState.mediator?.refresh) {
+                    LoadState.Loading -> RemotePresentationState.REMOTE_LOADING
+                    else -> state
+                }
+                RemotePresentationState.REMOTE_LOADING -> when (loadState.source.refresh) {
+                    LoadState.Loading -> RemotePresentationState.SOURCE_LOADING
+                    else -> state
+                }
+                RemotePresentationState.SOURCE_LOADING -> when (loadState.source.refresh) {
+                    is LoadState.NotLoading -> RemotePresentationState.PRESENTED
+                    else -> state
+                }
+                RemotePresentationState.PRESENTED -> when (loadState.mediator?.refresh) {
+                    LoadState.Loading -> RemotePresentationState.REMOTE_LOADING
+                    is LoadState.Error -> TODO()
+                    else -> state
+                }
+            }
+        }
 }
