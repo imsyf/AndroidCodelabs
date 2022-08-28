@@ -11,5 +11,6 @@ Load and display data from network and database into a list, incrementally, with
 - SavedStateHandle: to persist simple data across process death
 - Retrofit: to make REST API client
 - Paging 3
+- Room for offline support
 
 ## Result

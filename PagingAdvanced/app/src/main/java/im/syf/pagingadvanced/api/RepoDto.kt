@@ -9,6 +9,7 @@ import com.squareup.moshi.JsonClass
  */
 @JsonClass(generateAdapter = true)
 data class RepoDto(
+    val id: Long,
     val name: String,
     val full_name: String,
     val html_url: String,
