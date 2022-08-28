@@ -10,7 +10,7 @@ Load and display data from network and database into a list, incrementally, with
 - LiveData coroutine builder
 - SavedStateHandle: to persist simple data across process death
 - Retrofit: to make REST API client
-- Paging 3
+- Paging 3: remote mediator
 - Room for offline support
 
 ## Result

@@ -8,6 +8,8 @@ import androidx.paging.cachedIn
 import androidx.paging.insertSeparators
 import androidx.paging.map
 import im.syf.pagingadvanced.data.GithubRepository
+import im.syf.pagingadvanced.data.ext.toRepo
+import im.syf.pagingadvanced.db.RepoEntity
 import im.syf.pagingadvanced.repo.Repo
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -93,7 +95,7 @@ class SearchRepoViewModel(
 
     private fun searchRepo(query: String): Flow<PagingData<UiModel>> =
         repository.getSearchResultStream(query)
-            .map { pagingData -> pagingData.map { UiModel.RepoItem(it) } }
+            .map { pagingData -> pagingData.map { UiModel.RepoItem(it.let(RepoEntity::toRepo)) } }
             .map {
                 it.insertSeparators { before, after ->
                     if (after == null) {
